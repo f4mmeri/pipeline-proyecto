@@ -1,14 +1,36 @@
-module datapath(input  clk, reset,
-                input  [1:0]  ResultSrc, 
-                input  PCSrc, ALUSrc,
-                input  RegWrite,
-                input  [1:0]  ImmSrc, 
-                input  [2:0]  ALUControl,
-                output Zero,
-                output [31:0] PC,
-                input  [31:0] Instr,
-                output [31:0] ALUResult, WriteData, 
-                input  [31:0] ReadData);
+//agregar los 4 registros del pipeline, el registro de IF/ID, 
+//el registro de ID/EX, el registro de EX/MEM y el registro de MEM/WB. 
+// Cada uno de estos registros debe almacenar la información relevante 
+//para cada etapa del pipeline, como la instrucción, los operandos, 
+//los resultados intermedios, etc. Además, se deben agregar las señales 
+//de control necesarias para manejar el flujo de datos entre las etapas 
+//del pipeline y evitar conflictos de datos (hazards).
+
+module datapath(
+    input  clk, reset,
+ 
+    input  [1:0] ResultSrcD,
+    input  MemWriteD, MemReadD,
+    input  BranchD, JumpD,
+    input  ALUSrcD,
+    input  RegWriteD,
+    input  [1:0]  ImmSrcD,
+    input  [2:0]  ALUControlD,
+ 
+    input  StallF, StallD, FlushE, FlushD,
+    input  [1:0] ForwardAE, ForwardBE,
+ 
+    output [31:0] PC,
+    input  [31:0] Instr,        
+    output [31:0] ALUResultM,   
+    output [31:0] WriteDataM,  
+    input  [31:0] ReadDataM,   
+    output        MemWriteM,   
+ 
+    output [4:0]  Rs1E, Rs2E, RdE, RdM, RdW,
+    output        RegWriteM, RegWriteW,
+    output        MemReadE
+);
   
   localparam WIDTH = 32; // Define a local parameter for bus width
 

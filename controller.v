@@ -1,3 +1,5 @@
+//propagar señales de control
+
 module controller(input  [6:0] op,
                   input  [2:0] funct3,
                   input        funct7b5,
