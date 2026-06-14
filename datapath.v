@@ -1,110 +1,297 @@
-//agregar los 4 registros del pipeline, el registro de IF/ID, 
-//el registro de ID/EX, el registro de EX/MEM y el registro de MEM/WB. 
-// Cada uno de estos registros debe almacenar la información relevante 
-//para cada etapa del pipeline, como la instrucción, los operandos, 
-//los resultados intermedios, etc. Además, se deben agregar las señales 
-//de control necesarias para manejar el flujo de datos entre las etapas 
+//agregar los 4 registros del pipeline, el registro de IF/ID,
+//el registro de ID/EX, el registro de EX/MEM y el registro de MEM/WB.
+// Cada uno de estos registros debe almacenar la información relevante
+//para cada etapa del pipeline, como la instrucción, los operandos,
+//los resultados intermedios, etc. Además, se deben agregar las señales
+//de control necesarias para manejar el flujo de datos entre las etapas
 //del pipeline y evitar conflictos de datos (hazards).
 
 module datapath(
-    input  clk, reset,
- 
+    input  clk,
+    input  reset,
+
     input  [1:0] ResultSrcD,
-    input  MemWriteD, MemReadD,
-    input  BranchD, JumpD,
-    input  ALUSrcD,
-    input  RegWriteD,
-    input  [1:0]  ImmSrcD,
-    input  [2:0]  ALUControlD,
- 
-    input  StallF, StallD, FlushE, FlushD,
-    input  [1:0] ForwardAE, ForwardBE,
- 
-    output [31:0] PC,
-    input  [31:0] Instr,        
-    output [31:0] ALUResultM,   
-    output [31:0] WriteDataM,  
-    input  [31:0] ReadDataM,   
-    output        MemWriteM,   
- 
-    output [4:0]  Rs1E, Rs2E, RdE, RdM, RdW,
-    output        RegWriteM, RegWriteW,
-    output        MemReadE
+    input        MemWriteD,
+    input        MemReadD,
+    input        BranchD,
+    input        JumpD,
+    input        ALUSrcD,
+    input        RegWriteD,
+    input  [1:0] ImmSrcD,
+    input  [2:0] ALUControlD,
+
+    input  StallF,
+    input  StallD,
+    input  FlushE,
+    input  FlushD,
+    input  [1:0] ForwardAE,
+    input  [1:0] ForwardBE,
+
+    output reg [31:0] PCF,
+    input      [31:0] InstrF,
+    output     [31:0] ALUResultM,
+    output     [31:0] WriteDataM,
+    input      [31:0] ReadDataM,
+    output           MemWriteM,
+
+    // HAZARD
+    output     [4:0]  Rs1E,
+    output     [4:0]  Rs2E,
+    output     [4:0]  RdE,
+    output     [4:0]  RdM,
+    output     [4:0]  RdW,
+    output           RegWriteM,
+    output           RegWriteW,
+    output           MemReadE,
+    output     [31:0] InstrD
 );
-  
-  localparam WIDTH = 32; // Define a local parameter for bus width
 
-  wire [31:0] PCNext, PCPlus4, PCTarget; 
-  wire [31:0] ImmExt; 
-  wire [31:0] SrcA, SrcB; 
-  wire [31:0] Result; 
+localparam WIDTH = 32;
 
-  // next PC logic
-  flopr #(WIDTH) pcreg(
-    .clk(clk), 
-    .reset(reset), 
-    .d(PCNext), 
-    .q(PC)
-  ); 
+// señales internas
+// IF
+wire [31:0] PCNextF;
+wire [31:0] PCPlus4F;
+wire [31:0] PCTargetE;
+wire        PCSrcE;
 
-  adder       pcadd4(
-    .a(PC), 
-    .b({WIDTH{1'b0}} + 4), // Using WIDTH parameter for constant 4
-    .y(PCPlus4)
-  ); 
+// ID
+reg  [31:0] PCD;
+reg  [31:0] PCPlus4D;
+reg  [31:0] InstrD_reg;
+wire [31:0] RD1D;
+wire [31:0] RD2D;
+wire [31:0] ImmExtD;
 
-  adder       pcaddbranch(
-    .a(PC), 
-    .b(ImmExt), 
-    .y(PCTarget)
-  ); 
+// EX
+reg  [31:0] RD1E;
+reg  [31:0] RD2E;
+reg  [31:0] PCD_E;
+reg  [31:0] ImmExtE;
+reg  [31:0] PCPlus4E;
+reg  [4:0]  Rs1E_reg;
+reg  [4:0]  Rs2E_reg;
+reg  [4:0]  RdE_reg;
+reg         RegWriteE;
+reg         MemWriteE;
+reg         MemReadE_reg;
+reg         JumpE;
+reg         BranchE;
+reg         BranchCondE;
+reg         ALUSrcE;
+reg  [1:0]  ResultSrcE;
+reg  [2:0]  ALUControlE;
+wire [31:0] SrcAE;
+wire [31:0] SrcBE;
+wire [31:0] WriteDataE;
+wire [31:0] ALUResultE;
+wire        ZeroE;
 
-  mux2 #(WIDTH)  pcmux(
-    .d0(PCPlus4), 
-    .d1(PCTarget), 
-    .s(PCSrc), 
-    .y(PCNext)
-  ); 
- 
-  // register file logic
-  regfile     rf(
-    .clk(clk), 
-    .we3(RegWrite), 
-    .a1(Instr[19:15]), 
-    .a2(Instr[24:20]), 
-    .a3(Instr[11:7]), 
-    .wd3(Result), 
-    .rd1(SrcA), 
-    .rd2(WriteData)
-  ); 
+// MEM
+reg  [31:0] ALUResultM_reg;
+reg  [31:0] WriteDataM_reg;
+reg  [31:0] PCPlus4M;
+reg  [4:0]  RdM_reg;
+reg         RegWriteM_reg;
+reg         MemWriteM_reg;
+reg  [1:0]  ResultSrcM;
 
-  extend      ext(
-    .instr(Instr[31:7]), 
-    .immsrc(ImmSrc), 
-    .immext(ImmExt)
-  ); 
+// WB
+reg  [31:0] ALUResultW;
+reg  [31:0] ReadDataW;
+reg  [31:0] PCPlus4W;
+reg  [4:0]  RdW_reg;
+reg         RegWriteW_reg;
+reg  [1:0]  ResultSrcW;
+wire [31:0] ResultW;
 
-  // ALU logic
-  mux2 #(WIDTH)  srcbmux(
-    .d0(WriteData), 
-    .d1(ImmExt), 
-    .s(ALUSrc), 
-    .y(SrcB)
-  ); 
+// ETAPA FETCH (F)
+always @(posedge clk or posedge reset) begin
+    if (reset)
+        PCF <= 32'd0;
+    else if (!StallF)
+        PCF <= PCNextF;
+end
 
-  alu         alu(
-    .a(SrcA), 
-    .b(SrcB), 
-    .alucontrol(ALUControl), 
-    .result(ALUResult), 
-    .zero(Zero)
-  ); 
+assign PCPlus4F = PCF + 32'd4;
 
-  mux3 #(WIDTH)  resultmux(
-    .d0(ALUResult), 
-    .d1(ReadData), 
-    .d2(PCPlus4), 
-    .s(ResultSrc), 
-    .y(Result)
-  ); 
+mux2 #(WIDTH) pcmux (
+    .d0 (PCPlus4F),
+    .d1 (PCTargetE),
+    .s  (PCSrcE),
+    .y  (PCNextF)
+);
+
+always @(posedge clk or posedge reset) begin
+    if (reset | FlushD) begin
+        InstrD_reg <= 32'd0;
+        PCD        <= 32'd0;
+        PCPlus4D   <= 32'd0;
+    end else if (!StallD) begin
+        InstrD_reg <= InstrF;
+        PCD        <= PCF;
+        PCPlus4D   <= PCPlus4F;
+    end
+end
+
+assign InstrD = InstrD_reg;
+
+// ETAPA DECODE (D)
+regfile rf (
+    .clk (clk),
+    .we3 (RegWriteW_reg),
+    .a1  (InstrD[19:15]),
+    .a2  (InstrD[24:20]),
+    .a3  (RdW_reg),
+    .wd3 (ResultW),
+    .rd1 (RD1D),
+    .rd2 (RD2D)
+);
+
+extend ext (
+    .instr   (InstrD[31:7]),
+    .immsrc  (ImmSrcD),
+    .immext  (ImmExtD)
+);
+
+always @(posedge clk or posedge reset) begin
+    if (reset | FlushE) begin
+        RegWriteE    <= 1'b0;
+        MemWriteE    <= 1'b0;
+        MemReadE_reg <= 1'b0;
+        JumpE        <= 1'b0;
+        BranchE      <= 1'b0;
+        BranchCondE  <= 1'b0;
+        ALUSrcE      <= 1'b0;
+        ResultSrcE   <= 2'b00;
+        ALUControlE  <= 3'b000;
+        RD1E         <= 32'd0;
+        RD2E         <= 32'd0;
+        PCD_E        <= 32'd0;
+        ImmExtE      <= 32'd0;
+        PCPlus4E     <= 32'd0;
+        Rs1E_reg     <= 5'd0;
+        Rs2E_reg     <= 5'd0;
+        RdE_reg      <= 5'd0;
+    end else begin
+        RegWriteE    <= RegWriteD;
+        MemWriteE    <= MemWriteD;
+        MemReadE_reg <= MemReadD;
+        JumpE        <= JumpD;
+        BranchE      <= BranchD;
+        BranchCondE  <= BranchCondD;
+        ALUSrcE      <= ALUSrcD;
+        ResultSrcE   <= ResultSrcD;
+        ALUControlE  <= ALUControlD;
+        RD1E         <= RD1D;
+        RD2E         <= RD2D;
+        PCD_E        <= PCD;
+        ImmExtE      <= ImmExtD;
+        PCPlus4E     <= PCPlus4D;
+        Rs1E_reg     <= InstrD[19:15];
+        Rs2E_reg     <= InstrD[24:20];
+        RdE_reg      <= InstrD[11:7];
+    end
+end
+
+assign Rs1E    = Rs1E_reg;
+assign Rs2E    = Rs2E_reg;
+assign RdE     = RdE_reg;
+assign MemReadE = MemReadE_reg;
+
+// ETAPA EXECUTE (E)
+mux3 #(WIDTH) fa_mux (
+    .d0 (RD1E),
+    .d1 (ResultW),
+    .d2 (ALUResultM),
+    .s  (ForwardAE),
+    .y  (SrcAE)
+);
+
+mux3 #(WIDTH) fb_mux (
+    .d0 (RD2E),
+    .d1 (ResultW),
+    .d2 (ALUResultM),
+    .s  (ForwardBE),
+    .y  (WriteDataE)
+);
+
+mux2 #(WIDTH) srcbmux (
+    .d0 (WriteDataE),
+    .d1 (ImmExtE),
+    .s  (ALUSrcE),
+    .y  (SrcBE)
+);
+
+alu alu (
+    .a          (SrcAE),
+    .b          (SrcBE),
+    .alucontrol (ALUControlE),
+    .result     (ALUResultE),
+    .zero       (ZeroE)
+);
+
+adder pcaddbranch (
+    .a (PCD_E),
+    .b (ImmExtE),
+    .y (PCTargetE)
+);
+
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        RegWriteM_reg  <= 1'b0;
+        MemWriteM_reg  <= 1'b0;
+        ResultSrcM     <= 2'b00;
+        ALUResultM_reg <= 32'd0;
+        WriteDataM_reg <= 32'd0;
+        RdM_reg        <= 5'd0;
+        PCPlus4M       <= 32'd0;
+    end else begin
+        RegWriteM_reg  <= RegWriteE;
+        MemWriteM_reg  <= MemWriteE;
+        ResultSrcM     <= ResultSrcE;
+        ALUResultM_reg <= ALUResultE;
+        WriteDataM_reg <= WriteDataE;
+        RdM_reg        <= RdE_reg;
+        PCPlus4M       <= PCPlus4E;
+    end
+end
+
+assign ALUResultM = ALUResultM_reg;
+assign WriteDataM = WriteDataM_reg;
+assign MemWriteM  = MemWriteM_reg;
+assign RegWriteM  = RegWriteM_reg;
+assign RdM        = RdM_reg;
+
+// ETAPA MEM REGISTRO
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        RegWriteW_reg <= 1'b0;
+        ResultSrcW    <= 2'b00;
+        ALUResultW    <= 32'd0;
+        ReadDataW     <= 32'd0;
+        RdW_reg       <= 5'd0;
+        PCPlus4W      <= 32'd0;
+    end else begin
+        RegWriteW_reg <= RegWriteM_reg;
+        ResultSrcW    <= ResultSrcM;
+        ALUResultW    <= ALUResultM_reg;
+        ReadDataW     <= ReadDataM;
+        RdW_reg       <= RdM_reg;
+        PCPlus4W      <= PCPlus4M;
+    end
+end
+
+assign RegWriteW = RegWriteW_reg;
+assign RdW       = RdW_reg;
+
+// ETAPA WRITEBACK REGISTRO
+mux3 #(WIDTH) resultmux (
+    .d0 (ALUResultW),
+    .d1 (ReadDataW),
+    .d2 (PCPlus4W),
+    .s  (ResultSrcW),
+    .y  (ResultW)
+);
+
 endmodule
