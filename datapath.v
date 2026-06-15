@@ -7,55 +7,55 @@
 //del pipeline y evitar conflictos de datos (hazards).
 
 module datapath(
-    input  clk,
-    input  reset,
+    input         clk,
+    input         reset,
 
-    input  [1:0] ResultSrcD,
-    input        MemWriteD,
-    input        MemReadD,
-    input        BranchD,
-    input        JumpD,
-    input        ALUSrcD,
-    input        RegWriteD,
-    input  [1:0] ImmSrcD,
-    input  [2:0] ALUControlD,
+    input  [1:0]  ResultSrcD,
+    input         MemWriteD,
+    input         MemReadD,
+    input         BranchD,
+    input         JumpD,
+    input         ALUSrcD,
+    input         RegWriteD,
+    input  [1:0]  ImmSrcD,
+    input  [2:0]  ALUControlD,
 
-    input  StallF,
-    input  StallD,
-    input  FlushE,
-    input  FlushD,
-    input  [1:0] ForwardAE,
-    input  [1:0] ForwardBE,
+    input         StallF,
+    input         StallD,
+    input         FlushE,
+    input         FlushD,
+    input  [1:0]  ForwardAE,
+    input  [1:0]  ForwardBE,
 
     output reg [31:0] PCF,
     input      [31:0] InstrF,
     output     [31:0] ALUResultM,
     output     [31:0] WriteDataM,
     input      [31:0] ReadDataM,
-    output           MemWriteM,
+    output            MemWriteM,
 
-    // HAZARD
+    // INTERFAZ HAZARD UNIT
     output     [4:0]  Rs1E,
     output     [4:0]  Rs2E,
     output     [4:0]  RdE,
     output     [4:0]  RdM,
     output     [4:0]  RdW,
-    output           RegWriteM,
-    output           RegWriteW,
-    output           MemReadE,
+    output            RegWriteM,
+    output            RegWriteW,
+    output            MemReadE,
     output     [31:0] InstrD
 );
 
 localparam WIDTH = 32;
 
-// señales internas
-// IF
+// --- SEÑALES INTERNAS ---
+// Fetch (F)
 wire [31:0] PCNextF;
 wire [31:0] PCPlus4F;
 wire [31:0] PCTargetE;
 wire        PCSrcE;
 
-// ID
+// Decode (D)
 reg  [31:0] PCD;
 reg  [31:0] PCPlus4D;
 reg  [31:0] InstrD_reg;
@@ -63,7 +63,7 @@ wire [31:0] RD1D;
 wire [31:0] RD2D;
 wire [31:0] ImmExtD;
 
-// EX
+// Execute (E)
 reg  [31:0] RD1E;
 reg  [31:0] RD2E;
 reg  [31:0] PCD_E;
@@ -77,17 +77,19 @@ reg         MemWriteE;
 reg         MemReadE_reg;
 reg         JumpE;
 reg         BranchE;
-reg         BranchCondE;
-reg         ALUSrcE;
 reg  [1:0]  ResultSrcE;
 reg  [2:0]  ALUControlE;
+reg  [2:0]  Funct3E;  // Captura el tipo de Branch (beq, bne, blt, bge)
+reg  [6:0]  OpcodeE;  // Captura el tipo de Jump (jal, jalr)
 wire [31:0] SrcAE;
 wire [31:0] SrcBE;
 wire [31:0] WriteDataE;
 wire [31:0] ALUResultE;
 wire        ZeroE;
+reg         TakeBranchE;
+wire [31:0] PCBaseE;
 
-// MEM
+// Memory (M)
 reg  [31:0] ALUResultM_reg;
 reg  [31:0] WriteDataM_reg;
 reg  [31:0] PCPlus4M;
@@ -96,7 +98,7 @@ reg         RegWriteM_reg;
 reg         MemWriteM_reg;
 reg  [1:0]  ResultSrcM;
 
-// WB
+// Writeback (W)
 reg  [31:0] ALUResultW;
 reg  [31:0] ReadDataW;
 reg  [31:0] PCPlus4W;
@@ -122,6 +124,7 @@ mux2 #(WIDTH) pcmux (
     .y  (PCNextF)
 );
 
+// --- REGISTRO IF/ID ---
 always @(posedge clk or posedge reset) begin
     if (reset | FlushD) begin
         InstrD_reg <= 32'd0;
@@ -154,6 +157,7 @@ extend ext (
     .immext  (ImmExtD)
 );
 
+// --- REGISTRO ID/EX ---
 always @(posedge clk or posedge reset) begin
     if (reset | FlushE) begin
         RegWriteE    <= 1'b0;
@@ -161,7 +165,6 @@ always @(posedge clk or posedge reset) begin
         MemReadE_reg <= 1'b0;
         JumpE        <= 1'b0;
         BranchE      <= 1'b0;
-        BranchCondE  <= 1'b0;
         ALUSrcE      <= 1'b0;
         ResultSrcE   <= 2'b00;
         ALUControlE  <= 3'b000;
@@ -173,13 +176,14 @@ always @(posedge clk or posedge reset) begin
         Rs1E_reg     <= 5'd0;
         Rs2E_reg     <= 5'd0;
         RdE_reg      <= 5'd0;
+        Funct3E      <= 3'b000;
+        OpcodeE      <= 7'b0000000;
     end else begin
         RegWriteE    <= RegWriteD;
         MemWriteE    <= MemWriteD;
         MemReadE_reg <= MemReadD;
         JumpE        <= JumpD;
         BranchE      <= BranchD;
-        BranchCondE  <= BranchCondD;
         ALUSrcE      <= ALUSrcD;
         ResultSrcE   <= ResultSrcD;
         ALUControlE  <= ALUControlD;
@@ -191,12 +195,14 @@ always @(posedge clk or posedge reset) begin
         Rs1E_reg     <= InstrD[19:15];
         Rs2E_reg     <= InstrD[24:20];
         RdE_reg      <= InstrD[11:7];
+        Funct3E      <= InstrD[14:12]; // Propaga funct3 para discriminar branches
+        OpcodeE      <= InstrD[6:0];   // Propaga opcode para discriminar jalr
     end
 end
 
-assign Rs1E    = Rs1E_reg;
-assign Rs2E    = Rs2E_reg;
-assign RdE     = RdE_reg;
+assign Rs1E     = Rs1E_reg;
+assign Rs2E     = Rs2E_reg;
+assign RdE      = RdE_reg;
 assign MemReadE = MemReadE_reg;
 
 // ETAPA EXECUTE (E)
@@ -231,12 +237,28 @@ alu alu (
     .zero       (ZeroE)
 );
 
+// Unidad de Evaluación de Ramas (Soporta beq, bne, blt, bge)
+always @(*) begin
+    case (Funct3E)
+        3'b000:  TakeBranchE = ZeroE;                             // beq
+        3'b001:  TakeBranchE = ~ZeroE;                            // bne
+        3'b100:  TakeBranchE = ($signed(SrcAE) < $signed(SrcBE));   // blt
+        3'b101:  TakeBranchE = ($signed(SrcAE) >= $signed(SrcBE));  // bge
+        default: TakeBranchE = 1'b0;
+    endcase
+end
+
+// Selección de base para el cálculo del objetivo del salto (jalr usa SrcAE)
+assign PCBaseE   = (OpcodeE == 7'b1100111) ? SrcAE : PCD_E;
+assign PCSrcE    = JumpE | (BranchE & TakeBranchE);
+
 adder pcaddbranch (
-    .a (PCD_E),
+    .a (PCBaseE),
     .b (ImmExtE),
     .y (PCTargetE)
 );
 
+// --- REGISTRO EX/MEM ---
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         RegWriteM_reg  <= 1'b0;
@@ -263,7 +285,8 @@ assign MemWriteM  = MemWriteM_reg;
 assign RegWriteM  = RegWriteM_reg;
 assign RdM        = RdM_reg;
 
-// ETAPA MEM REGISTRO
+// ETAPA MEMORY (MEM)
+// --- REGISTRO MEM/WB ---
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         RegWriteW_reg <= 1'b0;
@@ -285,7 +308,7 @@ end
 assign RegWriteW = RegWriteW_reg;
 assign RdW       = RdW_reg;
 
-// ETAPA WRITEBACK REGISTRO
+// ETAPA WRITEBACK (WB)
 mux3 #(WIDTH) resultmux (
     .d0 (ALUResultW),
     .d1 (ReadDataW),
