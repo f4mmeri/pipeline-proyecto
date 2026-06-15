@@ -44,7 +44,8 @@ module datapath(
     output            RegWriteW,
     output            MemReadE,
     output     [31:0] InstrD
-);
+    output        PCSrcE;  //Para que la Hazard Unit sepa cuándo limpiar el pipeline (Flush) debido a un salto tomado, necesita recibir la señal PCSrcE
+  );
 
 localparam WIDTH = 32;
 
@@ -53,7 +54,6 @@ localparam WIDTH = 32;
 wire [31:0] PCNextF;
 wire [31:0] PCPlus4F;
 wire [31:0] PCTargetE;
-wire        PCSrcE;
 
 // Decode (D)
 reg  [31:0] PCD;
