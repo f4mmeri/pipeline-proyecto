@@ -28,3 +28,5 @@ INFO: [VRFC 10-2263] Analyzing Verilog file "/run/media/r3d/PEPITO/2026-1/ARQUI/
 INFO: [VRFC 10-311] analyzing module riscv_pipeline
 INFO: [VRFC 10-2263] Analyzing Verilog file "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/top.v" into library xil_defaultlib
 INFO: [VRFC 10-311] analyzing module top
+INFO: [VRFC 10-2263] Analyzing Verilog file "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/testbench.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module testbench

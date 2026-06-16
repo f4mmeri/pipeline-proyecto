@@ -13,6 +13,7 @@ verilog xil_defaultlib  --include "../../../../../../../../../../../../../../opt
 "../../../../../regfile.v" \
 "../../../../../riscv_pipeline.v" \
 "../../../../../top.v" \
+"../../../../../testbench.v" \
 
 # compile glbl module
 verilog xil_defaultlib "glbl.v"
