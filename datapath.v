@@ -43,8 +43,8 @@ module datapath(
     output            RegWriteM,
     output            RegWriteW,
     output            MemReadE,
-    output     [31:0] InstrD
-    output        PCSrcE;  //Para que la Hazard Unit sepa cuándo limpiar el pipeline (Flush) debido a un salto tomado, necesita recibir la señal PCSrcE
+    output     [31:0] InstrD, 
+    output        PCSrcE  //Para que la Hazard Unit sepa cuándo limpiar el pipeline (Flush) debido a un salto tomado, necesita recibir la señal PCSrcE
   );
 
 localparam WIDTH = 32;
@@ -77,6 +77,7 @@ reg         MemWriteE;
 reg         MemReadE_reg;
 reg         JumpE;
 reg         BranchE;
+reg         ALUSrcE; 
 reg  [1:0]  ResultSrcE;
 reg  [2:0]  ALUControlE;
 reg  [2:0]  Funct3E;  // Captura el tipo de Branch (beq, bne, blt, bge)
