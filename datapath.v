@@ -7,23 +7,23 @@
 //del pipeline y evitar conflictos de datos (hazards).
 
 module datapath(
-    input         clk,
-    input         reset,
+    input          clk,
+    input          reset,
 
     input  [1:0]  ResultSrcD,
-    input         MemWriteD,
-    input         MemReadD,
-    input         BranchD,
-    input         JumpD,
-    input         ALUSrcD,
-    input         RegWriteD,
+    input          MemWriteD,
+    input          MemReadD,
+    input          BranchD,
+    input          JumpD,
+    input          ALUSrcD,
+    input          RegWriteD,
     input  [1:0]  ImmSrcD,
     input  [2:0]  ALUControlD,
 
-    input         StallF,
-    input         StallD,
-    input         FlushE,
-    input         FlushD,
+    input          StallF,
+    input          StallD,
+    input          FlushE,
+    input          FlushD,
     input  [1:0]  ForwardAE,
     input  [1:0]  ForwardBE,
 
@@ -44,7 +44,7 @@ module datapath(
     output            RegWriteW,
     output            MemReadE,
     output     [31:0] InstrD, 
-    output        PCSrcE  //Para que la Hazard Unit sepa cuándo limpiar el pipeline (Flush) debido a un salto tomado, necesita recibir la señal PCSrcE
+    output            PCSrcE  //Para que la Hazard Unit sepa cuándo limpiar el pipeline (Flush) debido a un salto tomado, necesita recibir la señal PCSrcE
   );
 
 localparam WIDTH = 32;
@@ -54,6 +54,9 @@ localparam WIDTH = 32;
 wire [31:0] PCNextF;
 wire [31:0] PCPlus4F;
 wire [31:0] PCTargetE;
+wire [31:0] InstrDecompF;  // Cable para la instrucción expandida a 32 bits
+wire [31:0] PCIncF;         // Incremento dinámico (+2 o +4)
+wire [31:0] InstrF_Aligned; // Instrucción alineada a límites de 2 bytes
 
 // Decode (D)
 reg  [31:0] PCD;
@@ -72,12 +75,12 @@ reg  [31:0] PCPlus4E;
 reg  [4:0]  Rs1E_reg;
 reg  [4:0]  Rs2E_reg;
 reg  [4:0]  RdE_reg;
-reg         RegWriteE;
-reg         MemWriteE;
-reg         MemReadE_reg;
-reg         JumpE;
-reg         BranchE;
-reg         ALUSrcE; 
+reg          RegWriteE;
+reg          MemWriteE;
+reg          MemReadE_reg;
+reg          JumpE;
+reg          BranchE;
+reg          ALUSrcE; 
 reg  [1:0]  ResultSrcE;
 reg  [2:0]  ALUControlE;
 reg  [2:0]  Funct3E;  // Captura el tipo de Branch (beq, bne, blt, bge)
@@ -87,7 +90,7 @@ wire [31:0] SrcBE;
 wire [31:0] WriteDataE;
 wire [31:0] ALUResultE;
 wire        ZeroE;
-reg         TakeBranchE;
+reg          TakeBranchE;
 wire [31:0] PCBaseE;
 
 // Memory (M)
@@ -95,8 +98,8 @@ reg  [31:0] ALUResultM_reg;
 reg  [31:0] WriteDataM_reg;
 reg  [31:0] PCPlus4M;
 reg  [4:0]  RdM_reg;
-reg         RegWriteM_reg;
-reg         MemWriteM_reg;
+reg          RegWriteM_reg;
+reg          MemWriteM_reg;
 reg  [1:0]  ResultSrcM;
 
 // Writeback (W)
@@ -104,11 +107,14 @@ reg  [31:0] ALUResultW;
 reg  [31:0] ReadDataW;
 reg  [31:0] PCPlus4W;
 reg  [4:0]  RdW_reg;
-reg         RegWriteW_reg;
+reg          RegWriteW_reg;
 reg  [1:0]  ResultSrcW;
 wire [31:0] ResultW;
 
-// ETAPA FETCH (F)
+
+// ==========================================
+// ETAPA FETCH (F) - MODIFICADA PARA RVC
+// ==========================================
 always @(posedge clk or posedge reset) begin
     if (reset)
         PCF <= 32'd0;
@@ -116,7 +122,20 @@ always @(posedge clk or posedge reset) begin
         PCF <= PCNextF;
 end
 
-assign PCPlus4F = PCF + 32'd4;
+// 1. Alineación a 2 bytes (Half-word)
+// Si PCF[1] es 1, la instrucción comprimida está guardada en la mitad superior de los 32 bits [31:16]
+assign InstrF_Aligned = (PCF[1]) ? {16'd0, InstrF[31:16]} : InstrF;
+
+// 2. Instanciación del módulo Descompresor
+decompressor dec (
+    .instr_in  (InstrF_Aligned),
+    .instr_out (InstrDecompF)
+);
+
+// 3. Cálculo de incremento dinámico del PC
+// Si los bits [1:0] de la instrucción alineada NO son 2'b11, es una instrucción comprimida de 16 bits (+2 bytes)
+assign PCIncF = (InstrF_Aligned[1:0] != 2'b11) ? 32'd2 : 32'd4;
+assign PCPlus4F = PCF + PCIncF; // Mantiene el nombre original para no alterar el resto del pipeline
 
 mux2 #(WIDTH) pcmux (
     .d0 (PCPlus4F),
@@ -125,14 +144,17 @@ mux2 #(WIDTH) pcmux (
     .y  (PCNextF)
 );
 
-// --- REGISTRO IF/ID ---
+
+// ==========================================
+// --- REGISTRO IF/ID --- MODIFICADO PARA RVC
+// ==========================================
 always @(posedge clk or posedge reset) begin
     if (reset | FlushD) begin
         InstrD_reg <= 32'd0;
         PCD        <= 32'd0;
         PCPlus4D   <= 32'd0;
     end else if (!StallD) begin
-        InstrD_reg <= InstrF;
+        InstrD_reg <= InstrDecompF; // <--- Guarda la instrucción ya traducida/expandida a 32 bits
         PCD        <= PCF;
         PCPlus4D   <= PCPlus4F;
     end
@@ -140,7 +162,10 @@ end
 
 assign InstrD = InstrD_reg;
 
+
+// ==========================================
 // ETAPA DECODE (D)
+// ==========================================
 regfile rf (
     .clk (clk),
     .we3 (RegWriteW_reg),
@@ -158,7 +183,10 @@ extend ext (
     .immext  (ImmExtD)
 );
 
+
+// ==========================================
 // --- REGISTRO ID/EX ---
+// ==========================================
 always @(posedge clk or posedge reset) begin
     if (reset | FlushE) begin
         RegWriteE    <= 1'b0;
@@ -206,7 +234,10 @@ assign Rs2E     = Rs2E_reg;
 assign RdE      = RdE_reg;
 assign MemReadE = MemReadE_reg;
 
+
+// ==========================================
 // ETAPA EXECUTE (E)
+// ==========================================
 mux3 #(WIDTH) fa_mux (
     .d0 (RD1E),
     .d1 (ResultW),
@@ -259,7 +290,10 @@ adder pcaddbranch (
     .y (PCTargetE)
 );
 
+
+// ==========================================
 // --- REGISTRO EX/MEM ---
+// ==========================================
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         RegWriteM_reg  <= 1'b0;
@@ -286,7 +320,10 @@ assign MemWriteM  = MemWriteM_reg;
 assign RegWriteM  = RegWriteM_reg;
 assign RdM        = RdM_reg;
 
+
+// ==========================================
 // ETAPA MEMORY (MEM)
+// ==========================================
 // --- REGISTRO MEM/WB ---
 always @(posedge clk or posedge reset) begin
     if (reset) begin
@@ -309,7 +346,10 @@ end
 assign RegWriteW = RegWriteW_reg;
 assign RdW       = RdW_reg;
 
+
+// ==========================================
 // ETAPA WRITEBACK (WB)
+// ==========================================
 mux3 #(WIDTH) resultmux (
     .d0 (ALUResultW),
     .d1 (ReadDataW),
