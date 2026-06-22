@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="74,993 ps"></ZoomStartTime>
-      <ZoomEndTime time="75,002 ps"></ZoomEndTime>
-      <Cursor1Time time="75,000 ps"></Cursor1Time>
+      <ZoomStartTime time="34,994 ps"></ZoomStartTime>
+      <ZoomEndTime time="35,006 ps"></ZoomEndTime>
+      <Cursor1Time time="35,000 ps"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="133"></NameColumnWidth>
-      <ValueColumnWidth column_width="91"></ValueColumnWidth>
+      <NameColumnWidth column_width="156"></NameColumnWidth>
+      <ValueColumnWidth column_width="84"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="15" />
+   <WVObjectSize size="21" />
    <wvobject type="logic" fp_name="/testbench/clk">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -43,11 +43,6 @@
    <wvobject type="array" fp_name="/testbench/dut/rvpipe/PCF">
       <obj_property name="ElementShortName">PCF[31:0]</obj_property>
       <obj_property name="ObjectShortName">PCF[31:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/dut/rvpipe/dp/InstrD">
-      <obj_property name="ElementShortName">InstrD[31:0]</obj_property>
-      <obj_property name="ObjectShortName">InstrD[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/testbench/dut/rvpipe/dp/ALUResultM">
@@ -82,5 +77,34 @@
    <wvobject type="logic" fp_name="/testbench/dut/rvpipe/hu/PCSrcE">
       <obj_property name="ElementShortName">PCSrcE</obj_property>
       <obj_property name="ObjectShortName">PCSrcE</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/dp/InstrD">
+      <obj_property name="ElementShortName">InstrD[31:0]</obj_property>
+      <obj_property name="ObjectShortName">InstrD[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/InstrF">
+      <obj_property name="ElementShortName">InstrF[31:0]</obj_property>
+      <obj_property name="ObjectShortName">InstrF[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/RdE">
+      <obj_property name="ElementShortName">RdE[4:0]</obj_property>
+      <obj_property name="ObjectShortName">RdE[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/RdM">
+      <obj_property name="ElementShortName">RdM[4:0]</obj_property>
+      <obj_property name="ObjectShortName">RdM[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/dut/rvpipe/dp/RegWriteW">
+      <obj_property name="ElementShortName">RegWriteW</obj_property>
+      <obj_property name="ObjectShortName">RegWriteW</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/dp/RdW">
+      <obj_property name="ElementShortName">RdW[4:0]</obj_property>
+      <obj_property name="ObjectShortName">RdW[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/dut/rvpipe/dp/ResultW">
+      <obj_property name="ElementShortName">ResultW[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ResultW[31:0]</obj_property>
    </wvobject>
 </wave_config>
