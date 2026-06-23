@@ -4,6 +4,7 @@ verilog xil_defaultlib  --include "../../../../../../../../../../../../../../opt
 "../../../../../alu.v" \
 "../../../../../controller.v" \
 "../../../../../datapath.v" \
+"../../../../../decompressor.v" \
 "../../../../../dmem.v" \
 "../../../../../extend.v" \
 "../../../../../hazard.v" \
