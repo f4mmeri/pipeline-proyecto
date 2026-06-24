@@ -10,10 +10,10 @@ module decompressor(
     wire [4:0] r_prime_rd  = {2'b01, instr_in[9:7]};   
     wire [4:0] r_prime_rs2 = {2'b01, instr_in[4:2]};   
     
-    wire [11:0] imm_ci  = { {6{instr_in[12]}}, instr_in[12], instr_in[6:2] }; 
-    wire [11:0] imm_cb  = { {7{instr_in[12]}}, instr_in[6:2] };
+    wire [11:0] imm_ci = { {7{instr_in[12]}}, instr_in[6:2] };
+    wire [11:0] imm_cb  = imm_ci; //mismo formato
     wire [19:0] nzimm_lui = { {14{instr_in[12]}}, instr_in[12], instr_in[6:2] };
-    wire [4:0]  shamt   = { instr_in[12], instr_in[6:2] };
+    wire [4:0]  shamt   = instr_in[6:2];  //5 bits para RVC32
 
     always @(*) begin
         instr_out = 32'h00000013; // NOP por defecto
