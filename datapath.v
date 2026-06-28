@@ -284,11 +284,16 @@ end
 assign PCBaseE   = (OpcodeE == 7'b1100111) ? SrcAE : PCD_E;
 assign PCSrcE    = JumpE | (BranchE & TakeBranchE);
 
+wire [31:0] PCTargetRawE;
+
 adder pcaddbranch (
     .a (PCBaseE),
     .b (ImmExtE),
     .y (PCTargetE)
 );
+
+// jalr/c.jr/c.jalr fuerzan el bit 0 del destino a 0, como indica RV32I.
+assign PCTargetE = (OpcodeE == 7'b1100111) ? {PCTargetRawE[31:1], 1'b0} : PCTargetRawE;
 
 
 // ==========================================

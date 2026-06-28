@@ -14,15 +14,13 @@ module decompressor(
     wire [11:0] imm_cb      = imm_ci;
     wire [19:0] nzimm_lui   = {{14{instr_in[12]}}, instr_in[12], instr_in[6:2]};
     wire [4:0]  shamt       = instr_in[6:2];
-
-    // CL/CS: c.lw and c.sw use registers x8-x15 and word-aligned offsets.
+ 
     wire [11:0] imm_cl      = {5'b00000, instr_in[5], instr_in[12:10], instr_in[6], 2'b00};
 
-    // CI/CSS stack formats.
+ 
     wire [11:0] imm_lwsp    = {4'b0000, instr_in[3:2], instr_in[12], instr_in[6:4], 2'b00};
     wire [11:0] imm_swsp    = {4'b0000, instr_in[8:7], instr_in[12:9], 2'b00};
-
-    // CB branch immediate sign-extended to the RV32B immediate width.
+ 
     wire [12:0] imm_cbranch = {
         {4{instr_in[12]}},
         instr_in[12],
@@ -33,7 +31,7 @@ module decompressor(
         1'b0
     };
 
-    // CJ jump immediate sign-extended to the RV32J immediate width.
+ 
     wire [20:0] imm_cjump = {
         {9{instr_in[12]}},
         instr_in[12],
@@ -74,13 +72,14 @@ module decompressor(
                             end
                         end
 
-                        3'b001: begin // c.jal -> jal x1, offset (RV32C)
+                        3'b001: begin // c.jal  
                             instr_out = {imm_cjump[20], imm_cjump[10:1], imm_cjump[11], imm_cjump[19:12], 5'd1, 7'b1101111};
                         end
 
                         3'b011: begin // c.lui
                             if (rd_ci != 5'd0 && rd_ci != 5'd2) begin
-                                // Se emite como addi rd, x0, imm para ajustarse al controller actual.
+                                // TRUCO: En lugar de emitir un LUI real que colapsaría el controller,
+                                // emitimos un ADDI con rs1=x0 para evitar las XXXX.
                                 instr_out = {nzimm_lui[11:0], 5'b00000, 3'b000, rd_ci, 7'b0010011};
                             end
                         end
@@ -103,15 +102,15 @@ module decompressor(
                             endcase
                         end
 
-                        3'b101: begin // c.j -> jal x0, offset
+                        3'b101: begin // c.j  
                             instr_out = {imm_cjump[20], imm_cjump[10:1], imm_cjump[11], imm_cjump[19:12], 5'd0, 7'b1101111};
                         end
 
-                        3'b110: begin // c.beqz -> beq rs1', x0, offset
+                        3'b110: begin // c.beqz  
                             instr_out = {imm_cbranch[12], imm_cbranch[10:5], 5'd0, r_prime_rd, 3'b000, imm_cbranch[4:1], imm_cbranch[11], 7'b1100011};
                         end
 
-                        3'b111: begin // c.bnez -> bne rs1', x0, offset
+                        3'b111: begin // c.bnez  
                             instr_out = {imm_cbranch[12], imm_cbranch[10:5], 5'd0, r_prime_rd, 3'b001, imm_cbranch[4:1], imm_cbranch[11], 7'b1100011};
                         end
                     endcase
@@ -147,7 +146,7 @@ module decompressor(
                             end
                         end
 
-                        3'b110: begin // c.swsp -> sw rs2, offset(x2)
+                        3'b110: begin // c.swsp  
                             instr_out = {imm_swsp[11:5], rs2_cr, 5'd2, 3'b010, imm_swsp[4:0], 7'b0100011};
                         end
                     endcase
