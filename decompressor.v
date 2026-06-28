@@ -136,7 +136,7 @@ module decompressor(
                                 if (instr_in[12] == 1'b1) begin
                                     instr_out = {7'b0000000, rs2_cr, rd_ci, 3'b000, rd_ci, 7'b0110011}; // c.add
                                 end
-                                // instr_in[12] == 1'b0 corresponde a c.mv, no implementada en esta entrega.
+ 
                             end else if (rd_ci != 5'd0) begin
                                 if (instr_in[12] == 1'b0) begin
                                     instr_out = {12'd0, rd_ci, 3'b000, 5'd0, 7'b1100111}; // c.jr
