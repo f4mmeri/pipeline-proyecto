@@ -289,7 +289,7 @@ wire [31:0] PCTargetRawE;
 adder pcaddbranch (
     .a (PCBaseE),
     .b (ImmExtE),
-    .y (PCTargetE)
+    .y (PCTargetRawE)  // FIX: conectar al wire Raw, no al wire final
 );
 
 // jalr/c.jr/c.jalr fuerzan el bit 0 del destino a 0, como indica RV32I.
