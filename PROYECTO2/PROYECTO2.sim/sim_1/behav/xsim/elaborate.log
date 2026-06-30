@@ -6,27 +6,4 @@ Using 8 slave threads.
 Starting static elaboration
 Pass Through NonSizing Optimizer
 Completed static elaboration
-Starting simulation data flow analysis
-WARNING: [XSIM 43-4099] "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/controller.v" Line 1. Module controller doesn't have a timescale but at least one module in design has a timescale.
-WARNING: [XSIM 43-4099] "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/datapath.v" Line 9. Module datapath doesn't have a timescale but at least one module in design has a timescale.
-WARNING: [XSIM 43-4099] "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/alu.v" Line 1. Module alu doesn't have a timescale but at least one module in design has a timescale.
-WARNING: [XSIM 43-4099] "/run/media/r3d/PEPITO/2026-1/ARQUI/proyecto/proyecto2/pipeline-proyecto/adder.v" Line 1. Module adder doesn't have a timescale but at least one module in design has a timescale.
-Completed simulation data flow analysis
-Time Resolution for simulation is 1ps
-Compiling module xil_defaultlib.controller
-Compiling module xil_defaultlib.decompressor
-Compiling module xil_defaultlib.mux2(WIDTH=32)
-Compiling module xil_defaultlib.regfile
-Compiling module xil_defaultlib.extend
-Compiling module xil_defaultlib.mux3(WIDTH=32)
-Compiling module xil_defaultlib.alu
-Compiling module xil_defaultlib.adder
-Compiling module xil_defaultlib.datapath
-Compiling module xil_defaultlib.hazard
-Compiling module xil_defaultlib.riscv_pipeline
-Compiling module xil_defaultlib.imem
-Compiling module xil_defaultlib.dmem
-Compiling module xil_defaultlib.top
-Compiling module xil_defaultlib.testbench
-Compiling module xil_defaultlib.glbl
-Built simulation snapshot testbench_behav
+INFO: [XSIM 43-4323] No Change in HDL. Linking previously generated obj files to create kernel
